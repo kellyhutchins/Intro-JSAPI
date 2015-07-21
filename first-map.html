@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create Map</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+  <link rel="stylesheet" href="http://js.arcgis.com/3.14/esri/css/esri.css">
+  <style>
+    html, body, #mapDiv{
+      padding: 0;
+      margin: 0;
+      height: 100%;
+    }
+  </style>
+  <script src="http://js.arcgis.com/3.14/"></script>
+  <script>
+  /*
+    1. Show tutorial in help (Build first map)
+    2. Point out url to jsapi and esri.css
+    3. Show map class in help and show module load info at top of page
+    4. Create map and point out relationship between map and mapdiv
+    5. Show how you can modify basemap
+    6. Show how to modify zoom and center. Command line shortcuts for calculating
+       To get center (map.extent.getCenter().getLatitude())) and map.extent.getCenter().getLongitude() then map.getZoom()
+  */
+    var map;
+    require(["esri/map", "dojo/domReady!"], function(Map) {
+      map = new Map("mapDiv", {
+        center: [-122.27, 47.58],
+        zoom: 14,
+        basemap: "streets"
+      });
+    });
+  </script>
+</head>
+<body>
+  <div id="mapDiv"></div>
+</body>
+</html>
