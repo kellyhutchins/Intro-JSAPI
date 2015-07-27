@@ -1,100 +1,166 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <title>Search</title>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
-  <link rel="stylesheet" href="http://js.arcgis.com/3.14/esri/css/esri.css">
-  <style>
-    html, body, #mapDiv{
-      padding: 0;
-      margin: 0;
-      height: 100%;
-    }
-
-    #searchDiv{
-      position: absolute;
-      top:90px;
-      left:20px;
-    }
-  </style>
-  <script src="http://js.arcgis.com/3.14/"></script>
-  <script>
-  /*
-      1. Look at API ref for search 
-      2. Point out addLayersFromMap, enableButtonMode, showInfoWindowOnSelect etc
-    */
-
-    require([
-      "esri/map", 
+   <title>Search</title>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+   <link rel="stylesheet" href="http://js.arcgis.com/3.14/esri/css/esri.css">
+   <style>
+      html,
+      body,
+      #mapDiv {
+         padding: 0;
+         margin: 0;
+         height: 100%;
+      }
+      #searchDiv {
+         position: absolute;
+         top: 90px;
+         left: 20px;
+      }
+   </style>
+   <script src="http://js.arcgis.com/3.14/"></script>
+   <script>
+      require([
+      "esri/map",
       "esri/graphic",
       "esri/symbols/SimpleFillSymbol",
-      "esri/layers/FeatureLayer", 
-      "esri/renderers/UniqueValueRenderer", 
-      "esri/symbols/SimpleMarkerSymbol", 
-      "esri/Color", 
-      "esri/dijit/PopupTemplate", 
+      "esri/layers/FeatureLayer",
+      "esri/renderers/UniqueValueRenderer",
+      "esri/symbols/SimpleMarkerSymbol",
+      "esri/Color",
+      "esri/dijit/PopupTemplate",
+       "esri/InfoTemplate",
       "esri/dijit/Search",
       "dojo/domReady!"
-      ], function(
-        Map, 
-        Graphic,
-        SimpleFillSymbol,
-        FeatureLayer, 
-        UniqueValueRenderer, 
-        SimpleMarkerSymbol, 
-        Color, 
-        PopupTemplate, 
-        Search
+      ], function (
+         Map,
+         Graphic,
+         SimpleFillSymbol,
+         FeatureLayer,
+         UniqueValueRenderer,
+         SimpleMarkerSymbol,
+         Color,
+         PopupTemplate,
+         InfoTemplate,
+         Search
       ) {
-      var map = new Map("mapDiv", {
-        center: [-122.27, 47.58],
-        zoom: 14,
-        basemap: "dark-gray"
+         var map = new Map("mapDiv", {
+            center: [-122.27, 47.58],
+            zoom: 14,
+            basemap: "dark-gray"
+         });
+         // Define poupup template 
+         var template = new PopupTemplate({
+            title: "Code Violations",
+            description: "{Description}"
+         });
+
+
+         // Add a layer to the map
+         var codeViolations = new FeatureLayer("http://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/Code_Violation_Cases/FeatureServer/0", {
+            outFields: ["*"],
+            infoTemplate: template
+         });
+         map.addLayer(codeViolations);
+
+         // Apply renderer 
+         var defaultSymbol = new SimpleMarkerSymbol();
+         var uv = new UniqueValueRenderer(defaultSymbol, "Status");
+
+         // Add symbols for each of the values you want to symbolize
+         uv.addValue("VOLUNTARY COMPLIANCE", new SimpleMarkerSymbol().setColor(new Color("#493f74")));
+         uv.addValue("ENFORCED COMPLIANCE", new SimpleMarkerSymbol().setColor(new Color("#dfddab")));
+         uv.addValue("ADMINISTRATIVE CLOSURE", new SimpleMarkerSymbol().setColor(new Color("#c55c5c")));
+         uv.addValue("OPEN", new SimpleMarkerSymbol().setColor(new Color("#6666cc")));
+         uv.addValue("CLOSED", new SimpleMarkerSymbol().setColor(new Color("#99cc66")));
+         uv.addValue("TRANSFERRED TO EXTERNAL AGENCY", new SimpleMarkerSymbol().setColor(new Color("#ffcc33")));
+         uv.addValue("COMPLAINT/APPLICATN WITHDRAWN", new SimpleMarkerSymbol().setColor(new Color("#cc6666")));
+         uv.addValue("NO VIOLATION", new SimpleMarkerSymbol().setColor(new Color("#33cc99")));
+         uv.addValue("VIOLATION", new SimpleMarkerSymbol().setColor(new Color("#493f74")));
+         codeViolations.setRenderer(uv);
+
+         //Basic search widget taking all defaults
+         //first example
+
+         var search = new Search({
+            map: map
+         }, "searchDiv");
+
+         search.startup();
+         //end first example
+
+         //search only in the map extent
+         //second example
+
+         /*         var extent;
+         if (map.loaded) {  
+            loadSearch(map.extent);
+         } else {  
+            map.on("load", function () {    
+               loadSearch(map.extent);
+            });
+         }
+
+         function loadSearch(extent){
+            var search = new Search({
+               map: map,
+               enableButtonMode: true
+            }, "searchDiv");
+
+            search.sources[0].searchExtent = extent;
+            search.startup();
+         }*/
+         //end second example
+
+         //Search using code violations feature layer, also uses a suggestion template
+         //third example
+
+         /*var search = new Search({
+            map: map,
+            enableButtonMode: true
+         }, "searchDiv");
+
+         var sources = search.get("sources");
+
+         //Push the sources used to search, by default the ArcGIS Online World geocoder is included. In addition there is a feature layer of US congressional districts. The districts search is set up to find the "DISTRICTID". Also, a feature layer of weather watches is set up to find based on the event. 
+
+         sources.push({
+            featureLayer: new FeatureLayer("http://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/Code_Violation_Cases/FeatureServer/0", {
+               outFields: ["*"]
+            }),
+
+            searchFields: ["Case_Number", "Address"],
+            displayField: "Case_Number",
+            exactMatch: false,
+            outFields: ["Case_Number", "Address", "Description"],
+            suggestionTemplate: "${Address}: ${Description}",
+            name: "Code Violations",
+            placeholder: "1033810",
+            maxResults: 6,
+            maxSuggestions: 6,
+
+            //Create an InfoTemplate and include three fields
+            infoTemplate: new InfoTemplate("Code Violations", "Case number: ${Case_Number}</br>Parcel ID: ${PARCELID}</br>Address: ${Address}</br>Description: ${Description}"),
+            enableSuggestions: true,
+            minCharacters: 0
+         });
+
+         //Set the sources above to the search widget
+         search.set("sources", sources);
+         search.startup();
+*/
+         //end third example
       });
-      // Define poupup template 
-      var template = new PopupTemplate({
-        title: "Code Violations",
-        description: "{Description}"
-      });
-
-    
-      // Add a layer to the map
-      var codeViolations = new FeatureLayer("http://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/Code_Violation_Cases/FeatureServer/0",{
-        outFields: ["*"],
-        infoTemplate: template
-      });
-      map.addLayer(codeViolations);
-
-      // Apply renderer 
-      var defaultSymbol = new SimpleMarkerSymbol();
-      var uv = new UniqueValueRenderer(defaultSymbol, "Status");
-
-      // Add symbols for each of the values you want to symbolize
-      uv.addValue("VOLUNTARY COMPLIANCE", new SimpleMarkerSymbol().setColor(new Color("#493f74")));
-      uv.addValue("ENFORCED COMPLIANCE", new SimpleMarkerSymbol().setColor(new Color("#dfddab")));
-      uv.addValue("ADMINISTRATIVE CLOSURE", new SimpleMarkerSymbol().setColor(new Color("#c55c5c")));
-      uv.addValue("OPEN", new SimpleMarkerSymbol().setColor(new Color("#6666cc")));
-      uv.addValue("CLOSED", new SimpleMarkerSymbol().setColor(new Color("#99cc66")));
-      uv.addValue("TRANSFERRED TO EXTERNAL AGENCY", new SimpleMarkerSymbol().setColor(new Color("#ffcc33")));
-      uv.addValue("COMPLAINT/APPLICATN WITHDRAWN", new SimpleMarkerSymbol().setColor(new Color("#cc6666")));
-      uv.addValue("NO VIOLATION", new SimpleMarkerSymbol().setColor(new Color("#33cc99")));
-      uv.addValue("VIOLATION",  new SimpleMarkerSymbol().setColor(new Color("#493f74")));
-      codeViolations.setRenderer(uv);
-
-      // Add search widget 
-      var search = new Search({
-        map:map,
-        enableButtonMode:true
-      },"searchDiv");
-
-    });
-
-  </script>
+   </script>
 
 </head>
+
 <body>
-  <div id="mapDiv"></div>
-  <div id="searchDiv"></div>
+   <div id="mapDiv"></div>
+   <div id="searchDiv"></div>
+
 </body>
+
 </html>
